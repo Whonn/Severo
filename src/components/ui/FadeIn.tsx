@@ -1,7 +1,10 @@
 "use client";
 
-import { motion, useInView, type Variants } from "framer-motion";
-import { useRef, type ReactNode } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef, type ReactNode } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface FadeInProps {
   children: ReactNode;
@@ -25,32 +28,38 @@ export default function FadeIn({
   className = "",
   delay = 0,
   direction = "up",
-  duration = 0.6,
+  duration = 0.7,
   once = true,
 }: FadeInProps) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once, margin: "-80px" });
+  const ref = useRef<HTMLDivElement | null>(null);
   const offset = directionOffset[direction];
 
-  const variants: Variants = {
-    hidden: { opacity: 0, x: offset.x, y: offset.y },
-    visible: {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      transition: { duration, delay, ease: [0.22, 1, 0.36, 1] },
-    },
-  };
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
 
-  return (
-    <motion.div
-      ref={ref}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-      variants={variants}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        element,
+        { opacity: 0, x: offset.x, y: offset.y },
+        {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          duration,
+          delay,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: element,
+            start: "top 88%",
+            once,
+          },
+        },
+      );
+    }, ref);
+
+    return () => ctx.revert();
+  }, [delay, duration, offset.x, offset.y, once]);
+
+  return <div ref={ref} className={className}>{children}</div>;
 }
